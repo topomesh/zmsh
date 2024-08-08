@@ -96,8 +96,12 @@ def delaunay(points):
     return machine.run()
 
 
-def _faces_cross(x1, x2):
-    pass
+def _faces_cross(x, y):
+    # TODO: Make this work in Rᵈ
+    A = np.column_stack((x[:, 1] - x[:, 0], -(y[:, 1] - y[:, 0])))
+    f = y[:, 0] - x[:, 0]
+    s = np.linalg.solve(A, f)
+    return (0 <= s).all() and (s <= 1).all()
 
 
 class ConstrainedDelaunayMachine:
@@ -112,7 +116,7 @@ class ConstrainedDelaunayMachine:
 
         self._input_geometry = geometry
         self._geometry = delaunay(geometry.points)
-        self._face_queue = list(range(len(geometry.cells(1))))
+        self._face_queue = list(range(len(geometry.topology.cells(1))))
 
     @property
     def face_queue(self):
@@ -128,27 +132,38 @@ class ConstrainedDelaunayMachine:
     def crossing_faces(self, input_face_id):
         r"""Return the IDs of all faces in the current geometry that intersect
         a given face of the input geometry"""
+        # Get the vertices in the input face
         dimension = self._input_geometry.dimension
-        faces = self._input_geometry.cells(dimension - 1)
+        faces = self._input_geometry.topology.cells(dimension - 1)
         face_vertex_ids = faces.closure(input_face_id)[0][0]
-        covertices = self._geometry.cocells(0)
-        starting_face_ids = covertices.closure(face_vertex_ids)[0][-2]
-        x2 = geometry.points[face_vertex_ids, :]
+        x2 = self._geometry.points[face_vertex_ids, :].T
 
-        cofaces = self._geometry.cocells(dimension - 1)
-        faces = self._geometry.cells(dimension - 1)
-        cells = self._geometry.cells(dimension)
+        # Find all the faces and cells containing the input vertices
+        covertices = self._geometry.topology.cocells(0)
+        cocells_ids = covertices.closure(face_vertex_ids)[0]
+        incident_face_ids = cocells_ids[-2]
+        visited_cell_ids = cocells_ids[-1]
+
+        # The starting faces are any faces of the initial cells not incident on
+        # the input vertices
+        faces = self._geometry.topology.cells(dimension - 1)
+        cofaces = self._geometry.topology.cocells(dimension - 1)
+        cells = self._geometry.topology.cells(dimension)
+        face_ids = cells[visited_cell_ids][0]
+        starting_face_ids = np.setdiff1d(face_ids, incident_face_ids)
+
         face_queue = set(starting_face_ids)
-        result = set()
+        result = np.array([], dtype=np.int64)
         while face_queue:
-            face_id = cell_queue.pop()
-            vertex_ids = faces.closure(face_id)[0]
-            x1 = geometry.points[vertex_ids, :]
+            face_id = face_queue.pop()
+            vertex_ids = faces.closure(face_id)[0][0]
+            x1 = self._geometry.points[vertex_ids, :].T
             if _faces_cross(x1, x2):
-                result.add(face_id)
-                cell_ids = cofaces[face_id][0]
+                result = np.append(result, [face_id])
+                cell_ids = np.setdiff1d(cofaces[face_id][0], visited_cell_ids)
                 neighbor_face_ids = cells[cell_ids][0]
-                face_queue.update(neighbor_face_ids - result)
+                face_queue.update(np.setdiff1d(neighbor_face_ids, result))
+                visited_cell_ids = np.append(visited_cell_ids, cell_ids)
 
         return result
 
