@@ -3,7 +3,10 @@ from .topology import Topology
 from .geometry import compositions, Geometry
 from .convex_hull import ConvexHullMachine, convex_hull
 from .delaunay import (
-    DelaunayMachine, delaunay, ConstrainedDelaunayMachine, constrained_delaunay
+    DelaunayMachine,
+    ConstrainedDelaunayMachine,
+    delaunay,
+    constrained_delaunay,
 )
 from .plotting import visualize
 

@@ -103,9 +103,7 @@ def _faces_cross(x1, x2):
 class ConstrainedDelaunayMachine:
     def __init__(self, geometry: Geometry):
         if geometry.dimension != geometry.topology.dimension + 1:
-            raise ValueError(
-                "Starting geometry must be a d-surface in R^{d + 1}"
-            )
+            raise ValueError("Starting geometry must be a d-surface in Rᵈ⁺¹")
 
         if (geometry.topology.dimension != 1) or (geometry.dimension != 2):
             raise NotImplementedError(
