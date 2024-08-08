@@ -96,12 +96,22 @@ def delaunay(points):
     return machine.run()
 
 
+def _faces_cross(x1, x2):
+    pass
+
+
 class ConstrainedDelaunayMachine:
     def __init__(self, geometry: Geometry):
+        if geometry.dimension != geometry.topology.dimension + 1:
+            raise ValueError(
+                "Starting geometry must be a d-surface in R^{d + 1}"
+            )
+
         if (geometry.topology.dimension != 1) or (geometry.dimension != 2):
             raise NotImplementedError(
                 "Constrained Delaunay triangulation only implemented for 2D."
             )
+
         self._input_geometry = geometry
         self._geometry = delaunay(geometry.points)
         self._face_queue = list(range(len(geometry.cells(1))))
@@ -116,6 +126,33 @@ class ConstrainedDelaunayMachine:
         r"""Return `True` when there are no more constraining faces left to add
         and no more polygons to subdivide"""
         return not self._face_queue
+
+    def crossing_faces(self, input_face_id):
+        r"""Return the IDs of all faces in the current geometry that intersect
+        a given face of the input geometry"""
+        dimension = self._input_geometry.dimension
+        faces = self._input_geometry.cells(dimension - 1)
+        face_vertex_ids = faces.closure(input_face_id)[0][0]
+        covertices = self._geometry.cocells(0)
+        starting_face_ids = covertices.closure(face_vertex_ids)[0][-2]
+        x2 = geometry.points[face_vertex_ids, :]
+
+        cofaces = self._geometry.cocells(dimension - 1)
+        faces = self._geometry.cells(dimension - 1)
+        cells = self._geometry.cells(dimension)
+        face_queue = set(starting_face_ids)
+        result = set()
+        while face_queue:
+            face_id = cell_queue.pop()
+            vertex_ids = faces.closure(face_id)[0]
+            x1 = geometry.points[vertex_ids, :]
+            if _faces_cross(x1, x2):
+                result.add(face_id)
+                cell_ids = cofaces[face_id][0]
+                neighbor_face_ids = cells[cell_ids][0]
+                face_queue.update(neighbor_face_ids - result)
+
+        return result
 
     def step(self):
         raise NotImplementedError("Haven't got here yet!")
