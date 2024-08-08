@@ -94,3 +94,41 @@ def delaunay(points):
     r"""Compute the Delaunay mesh of a point set"""
     machine = DelaunayMachine(points)
     return machine.run()
+
+
+class ConstrainedDelaunayMachine:
+    def __init__(self, geometry: Geometry):
+        if (geometry.topology.dimension != 1) or (geometry.dimension != 2):
+            raise NotImplementedError(
+                "Constrained Delaunay triangulation only implemented for 2D."
+            )
+        self._input_geometry = geometry
+        self._geometry = delaunay(geometry.points)
+        self._face_queue = list(range(len(geometry.cells(1))))
+
+    @property
+    def face_queue(self):
+        r"""The queue of constrained faces that still need to be added to the
+        output geometry"""
+        return self._face_queue
+
+    def is_done(self):
+        r"""Return `True` when there are no more constraining faces left to add
+        and no more polygons to subdivide"""
+        return not self._face_queue
+
+    def step(self):
+        raise NotImplementedError("Haven't got here yet!")
+
+    def finalize(self):
+        raise NotImplementedError("Haven't got here yet!")
+
+    def run(self):
+        while not self.is_done():
+            self.step()
+
+        return self.finalize()
+
+
+def constrained_delaunay(geometry):
+    return ConstrainedDelaunayMachine(geometry).run()

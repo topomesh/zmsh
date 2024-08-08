@@ -2,7 +2,9 @@ from . import transformations, simplicial, examples
 from .topology import Topology
 from .geometry import compositions, Geometry
 from .convex_hull import ConvexHullMachine, convex_hull
-from .delaunay import DelaunayMachine, delaunay
+from .delaunay import (
+    DelaunayMachine, delaunay, ConstrainedDelaunayMachine, constrained_delaunay
+)
 from .plotting import visualize
 
 __all__ = [
@@ -12,6 +14,8 @@ __all__ = [
     "convex_hull",
     "DelaunayMachine",
     "delaunay",
+    "ConstrainedDelaunayMachine",
+    "constrained_delaunay",
     "visualize",
     "transformations",
     "simplicial",
